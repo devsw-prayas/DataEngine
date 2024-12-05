@@ -2,6 +2,7 @@
 #include<type_traits>
 
 namespace core {
+
 	/**
 	* Custom conditional types implementation
 	* @tparam flag Selector switch for types
@@ -62,29 +63,6 @@ namespace core {
 	};
 
 	/**
-	* General template for a functional interface
-	*/
-#ifndef FUNTCIONAL_INTERFACE
-#define FUNCTIONAL_INTERFACE(name, functionName, flag) \
-		template<typename... Types> \
-		class name { \
-		public: \
-			virtual ~name() = default; \
-			\
-			name(const name&) = delete; \
-			name& operator=(const name&) = delete; \
-			name(const name&&) noexcept = delete; \
-			name& operator=(const name&&) noexcept = delete; \
-			\
-			virtual enable_t_if<flag, void> functionName(Types... args) = 0;\
-			virtual enable_t_if<flag, void> functionName() = 0;\
-		protected: \
-			name() = default; \
-		};\
-
-#endif
-
-	/**
 	* General template for an interface
 	*/
 #ifndef S_INTERFACE
@@ -114,26 +92,42 @@ namespace core {
 	* Special Data Engine implementations are required to implement Sortable's sort method
 	* The MACRO for the engine will automatically extend it
 	*/
-	FUNCTIONAL_INTERFACE(Sortable, sort, false)//Defines the sortable interface
-
+	S_INTERFACE(Sortable)
 		/**
-		* All concrete implementations of DataEngine are required to have an Iterator. The Iterator
-		* interface defines the basic layout of an Iterator
+		* Sorts the invoking data engine
 		*/
-		S_INTERFACE(Iterator)
+		virtual void sort() = 0;
+	E_INTERFACE
 
-		E_INTERFACE
+	/**
+	* All concrete implementations of DataEngine are required to have an Iterator. The Iterator
+	* interface defines the basic layout of an Iterator
+	*/
+	S_INTERFACE(Iterator)
+	using value_type = E;
+	using difference_type = std::ptrdiff_t;
+	using pointer = E*;
+	using reference = E&;
 
-		/**
-		* The Iterable interface defines the methods that create an Iterator in both directions. All
-		* DataEngine classes have access to it and are required to override it
-		*/
-		S_INTERFACE(Iterable)
-		/**
-		* @return Returns an Iterator at the beginning of the engine
-		*/
-		virtual Iterator<E> begin() = 0;
+	virtual reference operator*() const = 0; 
+	virtual pointer operator->() const = 0;
 
+	virtual Iterator& operator++() = 0;
+	virtual Iterator& operator++(int) = 0;
+
+	virtual bool operator==(const Iterator& other) const = 0; \
+	virtual bool operator!=(const Iterator& other) const = 0; \
+	E_INTERFACE
+
+	/**
+	* The Iterable interface defines the methods that create an Iterator in both directions. All
+	* DataEngine classes have access to it and are required to override it
+	*/
+	S_INTERFACE(Iterable)
+	/**
+	* @return Returns an Iterator at the beginning of the engine
+	*/
+	virtual Iterator<E> begin() = 0;
 	/**
 	* @return Returns an Iterator at the end of the engine
 	*/

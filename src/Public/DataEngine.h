@@ -1,7 +1,9 @@
 #pragma once
 #include <atomic>
 #include <memory>
+#include <any>
 #include "EngineCore.h"
+#include "EngineMacros.h"
 
 namespace core {
 	/**
@@ -13,10 +15,20 @@ namespace core {
 	* @tparam E
 	*/
 	template <typename E>
-	class DataEngine : Iterator<E> {
+	class DataEngine : Iterable<E> {
 	protected:
 		size_t maxCapacity;
 		size_t activeCapacity;
+
+		constexpr static double GOLDEN_RATIO = 1.61803398875;
+		constexpr static int DEFAULT_CAPACITY = 16;
+
+		constexpr static double GROWTH_LOAD_FACTOR = 0.75;
+		constexpr static double SHRINK_LOAD_FACTOR = 0.25;
+
+		virtual void grow() = 0; //Method to grow the capacity of the data engine
+		virtual void shrink() = 0; //Method to shrink the capacity of the data engine
+		virtual void compress() = 0; //Method to compress the data engine
 
 		virtual ~DataEngine() = default;
 		DataEngine() = default;
@@ -31,25 +43,25 @@ namespace core {
 		DataEngine& operator=(const DataEngine&) = delete;
 
 		//Nature methods
-		bool isMutable() const;
-		bool isThreadSafe() const;
+		[[nodiscard]] bool isMutable() const;
+		[[nodiscard]] bool isThreadSafe() const;
 
 		//Size methods
-		virtual size_t getActiveSize();
-		virtual size_t getMaxCapacity();
+		[[nodiscard]] size_t getActiveSize() const;
+		[[nodiscard]] size_t getMaxCapacity() const;
 
 		//Empty check
-		bool isEmpty() const;
+		[[nodiscard]] bool isEmpty() const;
 
 		/**
 		* Virtual polymorphic copy method, required to override the copy constructor behavior
 		*/
-		virtual std::unique_ptr<DataEngine<E>> clone() const = 0;
+		virtual std::unique_ptr<DataEngine> clone() const = 0;
 
 		/**
 		* Virtual polymorphic move method
 		*/
-		virtual std::unique_ptr<DataEngine<E>> move() noexcept = 0;
+		virtual std::unique_ptr<DataEngine> move() noexcept = 0;
 
 		//Functions that all implementations must guarantee
 
@@ -58,7 +70,8 @@ namespace core {
 		*
 		* @return Returns a @code std::atomic pointer containing the invoking engine
 		*/
-		virtual std::atomic<DataEngine<E>>* getThreadSafeImage() = 0;
+		template<typename T> requires ValidBase<E, T>
+		std::atomic<T>* getThreadSafeImage() const;
 
 		/**
 		* Removes all the items if present
@@ -68,21 +81,11 @@ namespace core {
 		virtual bool removeAll() = 0;
 
 		/**
-		* Checks if the invoking data engine and the engine passed are equal.
-		* Here equality is considered as both having the same ordering of elements and identical
-		* sizes, including maximum capacity
-		*
-		* @param engine The engine to be compared with
-		* @return Returns true if both are equal, false otherwise
-		*/
-		virtual bool equals(DataEngine<E>* engine) = 0;
-
-		/**
 		* Converts the invoking data engine into an array of all the elements
 		*
 		* @return Returns an array representation
 		*/
-		virtual E* toArray() = 0;
+		virtual E* toArray() const = 0;
 
 		/**
 		* Converts the invoking data engine into an array of all the elements in the provided range
@@ -91,15 +94,139 @@ namespace core {
 		* @param end Endpoint index
 		* @return Returns the array representation
 		*/
-		virtual E* toArray(int start, int end) = 0;
+		virtual E* toArray(int start, int end) const = 0;
 
 		/**
-		* Checks if two Data Engines are equivalent, i.e., both contain the same elements,
-		* irrespective of length and repetition
+		* Checks if the invoking data engine and the data engine passed are truly equal, i.e. equal length
+		* and ordering of elements
 		*
-		* @param engine The engine to be compared with
-		* @return Returns true if both are equivalent, false otherwise
+		* @tparam T Type argument for data engine
+		* @param de Data engine to compare with
+		* @return Returns true if equal, false otherwise
 		*/
-		virtual bool equivalence(DataEngine<E>* engine) = 0;
+		template<typename T> requires ValidBase<E, T>
+		bool operator==(T de) const;
+
+		/**
+		* Checks if the invoking data engine and the data engine passed are truly equal in the provided range,
+		* i.e. equal ordering of elements
+		*
+		* @tparam T Type argument for data engine
+		* @param de Data Engine to compare with
+		* @param start Start index
+		* @param end End index
+		* @return Returns true if equal, false otherwise
+		*/
+		template<typename T> requires ValidBase<E, T>
+		[[nodiscard]] bool equals(T de, int start, int end) const;
+
+		/**
+		* Checks if the invoking data engine and the data engine passed are equivalent, i.e. have the same
+		* elements but not necessarily in the same order
+		*
+		* @tparam T Type argument of for the data engine
+		* @param de Data engine to compare with
+		* @return Returns true if equivalent, false otherwise
+		*/
+		template<typename T> requires ValidBase<E, T>
+		[[nodiscard]] bool equivalence(T de) const;
+
+		/**
+		* Merges the invoking data engine with the data engine passed. It creates a new instance containing
+		* all the elements of both data engines
+		*
+		* @tparam T Type argument for the data engine
+		* @param de Data engine to merge with
+		* @return Returns the merged data engine
+		*/
+		template<typename T> requires ValidBase<E, T>
+		T merge(T de) const;
+
+		/**
+		* Merge the invoking data engine with the data engine passed, starting from the provided index
+		* It creates a new instance containing all the elements of both data engines
+		*
+		* @tparam T Type argument for the data engine
+		* @param de Data engine to merge with
+		* @param start Starting index
+		* @return Returns the merged data engine
+		*/
+		template<typename T> requires ValidBase<E, T>
+		T merge(T de, int start) const;
+
+		/**
+		* Merge the invoking data engine with the data engine passed, starting from the provided start index
+		* and ending at the provided end index. It creates a new instance containing all the elements of both
+		* data engines
+		*
+		* @tparam T Type argument for the data engine
+		* @param de Data engine to merge with
+		* @param start Starting index
+		* @param end Endpoint index
+		* @return Returns the merged data engine
+		*/
+		template<typename T> requires ValidBase<E, T>
+		T merge(T de, int start, int end) const;
+
+		/**
+		* Reverses the invoking data engine
+		*/
+		virtual void reverse() = 0;
+
+
+	protected:
+		//Type-erasure forms of methods that need to be both virtual and template
+
+		/**
+		* Internal type-erasure form of getThreadSafeImage, used to create a thread-safe image of the
+		* invoking data-engine. This form uses std::any to cast back and forth during polymorphism
+		*
+		* @return Returns the thread-safe image of the invoking data-engine
+		*/
+		[[nodiscard]] virtual std::atomic<std::any>* getThreadSafeImage() const = 0;
+
+		/**
+		* Internal type-erasure form of operator==, used to compare the invoking data-engine with another
+		* for true equality, i.e. equal length and ordering of elements
+		*
+		* @param de Data engine to compare with
+		* @return Returns true if equal, false otherwise
+		*/
+		virtual bool operator==(std::any de) const = 0;
+
+		/**
+		* Internal type-erasure form of equivalence method, used to compare the invoking data-engine with
+		* another for equivalence, i.e. same elements but not necessarily in the same order
+		* @param de Data engine to compare with
+		* @return Returns true if equivalent, false otherwise
+		*/
+		[[nodiscard]] virtual bool equivalence(std::any de) const = 0;
+
+		/**
+		* Internal type-erasure form for merging data engines
+		*
+		* @param de Data Engine to be merged with
+		* @return Returns the merged data engine
+		*/
+		virtual std::any merge(std::any de) = 0;
+
+		/**
+		* Internal type-erasure form for merging data engines
+		*
+		* @param de Data Engine to be merged with
+		* @param start Starting index
+		* @return Returns the merged data engine
+		*/
+		virtual std::any merge(std::any de, int start) = 0;
+
+		/**
+		* Internal type-erasure form for merging data engines
+		*
+		* @param de Data Engine to be merged with
+		* @param start Starting index
+		* @param end Endpoint index
+		* @return Returns the merged data engine
+		*/
+		virtual std::any merge(std::any de, int start, int end) = 0;
 	};
 }
