@@ -1,11 +1,4 @@
 #pragma once
-#include "EngineCore.h"
-
-namespace core {
-	template<typename E>
-	class DataEngine;
-}
-
 #include "DataEngine.h"
 
 namespace core {
@@ -44,10 +37,11 @@ namespace core {
 				nature != Nature::UNDEFINED && behavior != Behavior::NONE);
 	}
 
-	template<typename E, typename Derived>
-	concept ValidBase = is_base_of<DataEngine<E>, Derived>::value;
-
-	class Dummy {};
+	template<Implementation implementation, Nature nature, Behavior behavior, Ordering order>
+	concept ValidConfig = (implementation == Implementation::ABSTRACTION_E && nature == Nature::UNDEFINED &&
+		behavior == Behavior::NONE && order == Ordering::UNSUPPORTED) ||
+		(implementation == Implementation::IMPLEMENTATION_E &&
+			nature != Nature::UNDEFINED && behavior != Behavior::NONE);
 
 #ifndef ENGINE_CONSTANTS
 #define ENGINE_CONSTANTS(implementation, nature, behavior, ordering) \
@@ -60,7 +54,7 @@ namespace core {
 
 #ifndef S_ABSTRACT_ENGINE_CLASS
 #define S_ABSTRACT_ENGINE_CLASS(name, nature, behavior, ordering) \
-		template<typename E> \
+		template<typename E>\
 		class name : public DataEngine<E>,\
 				conditional_t<nature == Nature::THREAD_MUTABLE, Sortable<E>, Dummy> { \
 			static_assert(Valid(Implementation::ABSTRACTION_E, nature, behavior, ordering), \
@@ -72,7 +66,7 @@ namespace core {
 
 #ifndef S_IMPLEMENTAION_CLASS
 #define S_IMPLEMENTATION_CLASS(name, Abstraction, nature, behavior, ordering) \
-		template<typename E> \
+		template<typename E>\
 		class name : public Abstraction,\
 		conditional_t<(nature == Nature::THREAD_MUTABLE), Sortable<E>, Dummy> { \
 			static_assert(Valid(Implementation::IMPLEMENTATION_E, nature, behavior, ordering), \

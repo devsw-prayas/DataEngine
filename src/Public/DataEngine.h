@@ -3,16 +3,25 @@
 #include <memory>
 #include <any>
 #include "EngineCore.h"
-#include "EngineMacros.h"
 
 namespace core {
+
+	template<typename E>
+	class DataEngine;
+
+	template<typename E, typename Derived>
+	concept ValidBase = is_base_of<DataEngine<E>, Derived>::value;
+
+	class Dummy {}; //Dummy needed for sortable.
+
 	/**
 	* The top-level virtual class for all DataEngines. It defines behavior that is shared between among
 	* all valid implementations of DataEngine. Certain macros are also to be used while creating a new
 	* implementation. All DataEngines support move semantics and cloning. Copy constructors are disabled
 	* to prevent shallow-copying. This class is implemented by various partial implementations which
-	* further lead to
-	* @tparam E
+	* can be used to create concrete implementations of DataEngine. Using this class as a direct superclass
+	* is considered an error and will result in a compilation error
+	* @tparam E Type parameter of stored data
 	*/
 	template <typename E>
 	class DataEngine : Iterable<E> {

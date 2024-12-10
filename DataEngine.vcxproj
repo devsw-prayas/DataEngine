@@ -130,14 +130,34 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Public\List.h" />
+    <ClInclude Include="src\Public\Abstraction\SkipList.h" />
+    <ClInclude Include="src\Public\Abstraction\Set.h" />
+    <ClInclude Include="src\Public\Abstraction\Queue.h" />
+    <ClInclude Include="src\Public\Abstraction\Matrix.h" />
+    <ClInclude Include="src\Public\Abstraction\Map.h" />
+    <ClInclude Include="src\Public\Abstraction\Graph.h" />
+    <ClInclude Include="src\Public\Abstraction\Deque.h" />
+    <ClInclude Include="src\Public\Abstraction\List.h" />
     <ClInclude Include="src\Public\DataEngine.h" />
     <ClInclude Include="src\Public\EngineMacros.h" />
+    <ClInclude Include="src\Public\Abstraction\Stack.h" />
+    <ClInclude Include="src\Public\Abstraction\Tree.h" />
+    <ClInclude Include="src\Public\Abstraction\Trie.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Private\List.cpp" />
+    <ClCompile Include="src\Private\Abstraction\SkipList.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Set.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Queue.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Matrix.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Map.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Graph.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Deque.cpp" />
+    <ClCompile Include="src\Private\Abstraction\List.cpp" />
     <ClCompile Include="src\Private\DataEngine.cpp" />
     <ClCompile Include="src\Public\EngineCore.h" />
+    <ClCompile Include="src\Private\Abstraction\Stack.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Tree.cpp" />
+    <ClCompile Include="src\Private\Abstraction\Trie.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />
